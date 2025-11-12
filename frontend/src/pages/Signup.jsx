@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseClient';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import { motion } from 'framer-motion';
+import StatusToast from '../components/StatusToast';
 
 export default function Signup(){
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [feedback, setFeedback] = useState(null);
   const [searchParams] = useSearchParams();
   const nav = useNavigate();
   const returnUrl = searchParams.get('returnUrl') || '/courses';
+
+  const dismissFeedback = useCallback(() => setFeedback(null), []);
 
   useEffect(()=> {
     const e = searchParams.get('email');
@@ -24,12 +28,31 @@ export default function Signup(){
       // after signup let user login & then redirect
       nav(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
     } catch (err) {
-      alert(err.message);
+      setFeedback({
+        type: 'error',
+        title: 'Sign-up error',
+        message: mapSignupError(err),
+      });
+    }
+  }
+
+  function mapSignupError(err) {
+    if (!err) return 'We could not create your account. Please try again.';
+    switch (err.code) {
+      case 'auth/email-already-in-use':
+        return 'This email is already registered. Try logging in instead.';
+      case 'auth/invalid-email':
+        return 'The email format looks incorrect. Please update it and retry.';
+      case 'auth/weak-password':
+        return 'Please choose a stronger password (at least 6 characters).';
+      default:
+        return err.message || 'Unexpected error during sign-up. Please try again.';
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-emerald-50/40 relative overflow-hidden">
+      <StatusToast feedback={feedback} onClose={dismissFeedback} />
       <NavBar />
       <motion.div
         initial={{ opacity: 0, x: -20 }}

@@ -16,3 +16,82 @@ body {
   margin: 0;
 }
 a { color: inherit; text-decoration: none; }
+
+@media (pointer: fine) {
+  body.tk-hide-native-cursor {
+    cursor: none;
+  }
+
+  .tk-cursor,
+  .tk-cursor-ring {
+    pointer-events: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    opacity: 0;
+    will-change: transform, opacity;
+    transition: opacity 0.25s ease;
+  }
+
+  .tk-cursor {
+    --cursor-scale: 1;
+    width: 12px;
+    height: 12px;
+    border-radius: 9999px;
+    background: radial-gradient(circle at center, rgba(16, 185, 129, 0.9), rgba(16, 185, 129, 0.35));
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+    transform: translate3d(calc(var(--cursor-x, 0px) - 6px), calc(var(--cursor-y, 0px) - 6px), 0) scale(var(--cursor-scale, 1));
+    transition: opacity 0.25s ease, transform 0.18s ease, box-shadow 0.25s ease;
+  }
+
+  .tk-cursor-ring {
+    --cursor-ring-scale: 1;
+    width: 44px;
+    height: 44px;
+    border-radius: 9999px;
+    border: 2px solid rgba(16, 185, 129, 0.35);
+    transform: translate3d(calc(var(--cursor-ring-x, 0px) - 22px), calc(var(--cursor-ring-y, 0px) - 22px), 0) scale(var(--cursor-ring-scale, 1));
+    transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.25s ease;
+    mix-blend-mode: multiply;
+    backdrop-filter: blur(3px);
+  }
+
+  .tk-cursor-visible {
+    opacity: 1;
+  }
+
+  .tk-cursor-click {
+    --cursor-scale: 0.7;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+  }
+
+  .tk-cursor-ring-click {
+    --cursor-ring-scale: 0.55;
+    border-color: rgba(16, 185, 129, 0.6);
+  }
+
+  .tk-cursor-hover {
+    --cursor-scale: 1.35;
+    box-shadow: 0 0 22px rgba(16, 185, 129, 0.45);
+    background: radial-gradient(circle at center, rgba(16, 185, 129, 0.95), rgba(16, 185, 129, 0.25));
+  }
+
+  .tk-cursor-ring-hover {
+    --cursor-ring-scale: 1.2;
+    border-color: rgba(5, 150, 105, 0.55);
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.15), transparent);
+  }
+
+  .tk-cursor-active {
+    --cursor-scale: 0.45;
+    box-shadow: 0 0 18px rgba(5, 150, 105, 0.55);
+    background: radial-gradient(circle at center, rgba(16, 185, 129, 1), rgba(4, 120, 87, 0.35));
+  }
+
+  .tk-cursor-ring-active {
+    --cursor-ring-scale: 0.4;
+    border-width: 3px;
+    border-color: rgba(4, 120, 87, 0.8);
+  }
+}

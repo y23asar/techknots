@@ -22,7 +22,10 @@ const app = initializeApp(firebaseConfig);
 // Auth client & providers
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
 export const githubProvider = new GithubAuthProvider();
+githubProvider.setCustomParameters({ allow_signup: 'true' });
 
 // Firestore (used to create user profiles)
 export const db = getFirestore(app);

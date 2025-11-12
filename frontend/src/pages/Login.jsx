@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
+import React, { useState, useEffect, useCallback } from 'react';
+import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, googleProvider, githubProvider } from '../firebaseClient';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import NavBar from '../components/NavBar';
 import { motion } from 'framer-motion';
+import StatusToast from '../components/StatusToast';
 
 export default function Login(){
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [feedback, setFeedback] = useState(null);
   const [searchParams] = useSearchParams();
   const nav = useNavigate();
 
@@ -17,11 +18,53 @@ export default function Login(){
     return val || '/courses';
   })();
 
+  const dismissFeedback = useCallback(() => setFeedback(null), []);
+
   useEffect(() => {
     // if already logged in redirect to returnUrl
     const unsub = auth.onAuthStateChanged(user => { if (user) nav(returnUrl); });
     return unsub;
-  }, []);
+  }, [nav, returnUrl]);
+
+  useEffect(() => {
+    let isMounted = true;
+    getRedirectResult(auth)
+      .then(result => {
+        if (result?.user) {
+          nav(returnUrl);
+        }
+      })
+      .catch(err => {
+        if (!isMounted) return;
+        setFeedback({
+          type: 'error',
+          title: 'Authentication failed',
+          message: mapAuthError(err),
+        });
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [nav, returnUrl]);
+
+  function mapAuthError(err) {
+    if (!err) return 'Something went wrong while contacting the authentication service.';
+    switch (err.code) {
+      case 'auth/invalid-email':
+        return 'The email address looks incorrect. Please double-check and try again.';
+      case 'auth/user-disabled':
+        return 'This account has been disabled. Contact support if you think this is a mistake.';
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+        return 'We could not verify those credentials. Try again or reset your password.';
+      case 'auth/popup-closed-by-user':
+        return 'The sign-in window was closed before completing the process. Please try again.';
+      case 'auth/network-request-failed':
+        return 'Network connection failed. Check your internet connection and retry.';
+      default:
+        return err.message || 'Unexpected authentication error. Please try again.';
+    }
+  }
 
   async function onEmailLogin(e){
     e.preventDefault();
@@ -33,7 +76,11 @@ export default function Login(){
         // redirect to signup with info
         nav(`/signup?email=${encodeURIComponent(email)}&returnUrl=${encodeURIComponent(returnUrl)}`);
       } else {
-        alert(err.message);
+        setFeedback({
+          type: 'error',
+          title: 'Sign-in error',
+          message: mapAuthError(err),
+        });
       }
     }
   }
@@ -44,12 +91,35 @@ export default function Login(){
       nav(returnUrl);
     } catch (err) {
       console.error(err);
-      alert('Login failed: ' + err.message);
+      if (err.code === 'auth/popup-blocked') {
+        setFeedback({
+          type: 'info',
+          title: 'Popup blocked',
+          message: 'Your browser blocked the sign-in popup. We are opening the provider in the same tab instead.',
+        });
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirectErr) {
+          console.error(redirectErr);
+          setFeedback({
+            type: 'error',
+            title: 'Authentication failed',
+            message: mapAuthError(redirectErr),
+          });
+        }
+        return;
+      }
+      setFeedback({
+        type: 'error',
+        title: 'Authentication failed',
+        message: mapAuthError(err),
+      });
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-emerald-50/40 relative overflow-hidden">
+      <StatusToast feedback={feedback} onClose={dismissFeedback} />
       <NavBar />
       {/* soft blobs */}
       <motion.div
